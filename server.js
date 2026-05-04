@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 
 const SUPABASE_URL = 'https://rgqaptfxmcvuptfuwike.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJncWFwdGZ4bWN2dXB0ZnV3aWtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3OTg3NzcsImV4cCI6MjA5MTM3NDc3N30.9OoUlnfNF33efgCcwtunuZVKx3RFhwNWo04jSgGwlrc';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjcWZoZGV2Ym1pemVlbnFyZW9jIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDUzMjc4OSwiZXhwIjoyMDg2MTA4Nzg5fQ.544LfRLCALUyfdSqWMqeRe14C-ii5rskkHxxWfzOy5Q';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7','base64');
 
