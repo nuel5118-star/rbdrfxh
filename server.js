@@ -28,7 +28,7 @@ function processSpintax(text){
   let result=text;
   let limit=20;
   while(limit-->0){
-    const match=result.match(/\{([^{}]+)\}/);
+    const match=result.match(/\{([^{}]*\|[^{}]*)\}/);
     if(!match)break;
     const choices=match[1].split('|');
     result=result.replace(match[0],choices[Math.floor(Math.random()*choices.length)]);
