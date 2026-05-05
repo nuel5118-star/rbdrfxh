@@ -2,8 +2,97 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from './api.js';
 
-const VARS = ['{{first_name}}','{{last_name}}','{{company}}','{{city}}','{{phone}}','{{business_url}}'];
+// VARS defined in VarInserter component
 const TIMEZONES = ['America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Paris','Africa/Lagos','Africa/Nairobi','Asia/Dubai','Asia/Kolkata','Asia/Singapore'];
+
+const VARS = [
+  { key: 'first_name', label: 'First Name', default_fallback: 'dear' },
+  { key: 'last_name', label: 'Last Name', default_fallback: '' },
+  { key: 'company', label: 'Company', default_fallback: 'your company' },
+  { key: 'city', label: 'City', default_fallback: 'your area' },
+  { key: 'phone', label: 'Phone', default_fallback: '' },
+  { key: 'business_url', label: 'Website', default_fallback: '' },
+];
+
+function VarInserter({ onInsert }) {
+  const [popup, setPopup] = useState(null); // { key, label, fallback }
+
+  const handleVarClick = (v) => {
+    setPopup({ key: v.key, label: v.label, fallback: v.default_fallback });
+  };
+
+  const handleInsert = () => {
+    if (!popup) return;
+    const tag = popup.fallback
+      ? `{{${popup.key} | "${popup.fallback}"}}`
+      : `{{${popup.key}}}`;
+    onInsert(tag);
+    setPopup(null);
+  };
+
+  const handleInsertNoFallback = () => {
+    if (!popup) return;
+    onInsert(`{{${popup.key}}}`);
+    setPopup(null);
+  };
+
+  return (
+    <div style={{ marginBottom:10 }}>
+      <div style={{ display:'flex', gap:6, flexWrap:'wrap', alignItems:'center', marginBottom:6 }}>
+        <span style={{ fontSize:11, color:'var(--text-muted)', fontWeight:500 }}>Insert variable:</span>
+        {VARS.map(v => (
+          <span key={v.key} className="var-pill" onClick={() => handleVarClick(v)}>
+            {`{{${v.key}}}`}
+          </span>
+        ))}
+        <span style={{ fontSize:11, color:'var(--text-muted)' }}>· Custom: <code style={{ fontSize:10, background:'var(--bg-muted)', padding:'1px 4px', borderRadius:3 }}>{'{{your_column}}'}</code></span>
+      </div>
+
+      {/* Hint */}
+      <div style={{ fontSize:11, color:'var(--text-muted)', background:'var(--bg-subtle)', padding:'6px 10px', borderRadius:6, lineHeight:1.7 }}>
+        💡 <strong>Fallback syntax:</strong> <code style={{ fontSize:10 }}>{'{{first_name | "dear"}}'}</code> → uses "dear" if contact has no first name.
+        &nbsp;|&nbsp; No fallback: <code style={{ fontSize:10 }}>{'{{first_name | ""}}'}</code> → leaves blank.
+        &nbsp;|&nbsp; Click a variable above to set fallback visually.
+      </div>
+
+      {/* Popup */}
+      {popup && (
+        <div style={{ marginTop:10, background:'var(--bg)', border:'2px solid var(--accent)', borderRadius:10, padding:16, maxWidth:400 }}>
+          <div style={{ fontWeight:600, fontSize:13, marginBottom:4 }}>
+            Insert <code style={{ fontSize:12, background:'var(--bg-muted)', padding:'1px 6px', borderRadius:4 }}>{`{{${popup.key}}}`}</code>
+          </div>
+          <div style={{ fontSize:12, color:'var(--text-secondary)', marginBottom:12 }}>
+            What should appear if this contact has no {popup.label}?
+          </div>
+          <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:12 }}>
+            <input
+              className="input"
+              style={{ flex:1, fontSize:13 }}
+              placeholder={`e.g. dear, friend, there, (leave blank for nothing)`}
+              value={popup.fallback}
+              onChange={e => setPopup(p => ({ ...p, fallback: e.target.value }))}
+              onKeyDown={e => { if (e.key === 'Enter') handleInsert(); if (e.key === 'Escape') setPopup(null); }}
+              autoFocus
+            />
+          </div>
+          <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:12, background:'var(--bg-subtle)', padding:'6px 10px', borderRadius:6 }}>
+            Preview: <strong style={{ color:'var(--accent)' }}>
+              {popup.fallback ? `{{${popup.key} | "${popup.fallback}"}}` : `{{${popup.key}}}`}
+            </strong>
+            {popup.fallback && <span style={{ color:'var(--text-muted)' }}> → "{popup.fallback}" when empty</span>}
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={() => setPopup(null)} className="btn btn-secondary btn-sm">Cancel</button>
+            <button onClick={handleInsertNoFallback} className="btn btn-secondary btn-sm">Insert without fallback</button>
+            <button onClick={handleInsert} className="btn btn-primary btn-sm">
+              Insert {popup.fallback ? `with fallback "${popup.fallback}"` : 'variable'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StepCard({ step, index, total, onChange, onRemove, onMoveUp, onMoveDown, campaignId }) {
   const [showPreview, setShowPreview] = useState(false);
@@ -84,12 +173,8 @@ function StepCard({ step, index, total, onChange, onRemove, onMoveUp, onMoveDown
         </div>
       </div>
 
-      {/* Variable pills */}
-      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10, alignItems:'center' }}>
-        <span style={{ fontSize:11, color:'var(--text-muted)' }}>Insert:</span>
-        {VARS.map(v => <span key={v} className="var-pill" onClick={() => insertVar(v)}>{v}</span>)}
-        <span style={{ fontSize:11, color:'var(--text-muted)' }}>· Custom: <code style={{ fontSize:10 }}>{'{{your_column}}'}</code></span>
-      </div>
+      {/* Variable pills with fallback editor */}
+      <VarInserter onInsert={insertVar} />
 
       {/* Spintax hint */}
       <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:10, background:'var(--bg-subtle)', padding:'6px 10px', borderRadius:6 }}>
