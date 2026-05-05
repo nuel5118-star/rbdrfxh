@@ -34,9 +34,13 @@ function StepCard({ step, index, total, onChange, onRemove, onMoveUp, onMoveDown
     if (!campaignId) return;
     try {
       const res = await api.getContacts(campaignId, { page: 1 });
+      console.log('Loaded contacts:', res.contacts?.length, res);
       setRealContacts(res.contacts || []);
-    } catch(e) {}
+    } catch(e) { console.error('Failed to load contacts:', e); }
   };
+
+  // Load real contacts on mount if we have a campaignId
+  useEffect(() => { if (campaignId) loadRealContacts(); }, [campaignId]);
 
   const handleRealContactSelect = (e) => {
     const contactId = e.target.value;
@@ -143,15 +147,21 @@ function StepCard({ step, index, total, onChange, onRemove, onMoveUp, onMoveDown
         <div className="preview-pane" style={{ marginTop:14 }}>
           <div className="preview-header">
             <div style={{ fontWeight:600, fontSize:12, color:'var(--text-secondary)', marginBottom:8 }}>Preview with contact data</div>
-            {realContacts.length > 0 && (
+            {campaignId && (
               <div style={{ marginBottom:10 }}>
-                <label style={{ fontSize:11, color:'var(--text-muted)', display:'block', marginBottom:4 }}>Pick a real contact from this campaign:</label>
+                <label style={{ fontSize:11, color:'var(--text-muted)', display:'block', marginBottom:4 }}>
+                  Pick a real contact from this campaign:
+                </label>
                 <select className="input" style={{ fontSize:12 }} value={selectedContact} onChange={handleRealContactSelect}>
                   <option value="">— Use test data below —</option>
+                  {realContacts.length === 0 && <option disabled>Loading contacts...</option>}
                   {realContacts.map(c => (
-                    <option key={c.id} value={c.id}>{c.email} {c.first_name ? `(${c.first_name} ${c.last_name||''})` : ''}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.email}{c.first_name ? ` — ${c.first_name} ${c.last_name||''}` : ''}{c.company ? ` (${c.company})` : ''}
+                    </option>
                   ))}
                 </select>
+                {realContacts.length > 0 && <div style={{fontSize:10, color:'var(--text-muted)', marginTop:3}}>{realContacts.length} contacts loaded</div>}
               </div>
             )}
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:10 }}>
