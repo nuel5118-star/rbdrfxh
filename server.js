@@ -8,6 +8,7 @@ import { addDays, isWeekend, parseISO, isBefore, isAfter, addMinutes } from 'dat
 import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { WebSocket } from 'ws';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -16,7 +17,7 @@ app.use(express.json({ limit: '20mb' }));
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://tcqfhdevbmizeenqreoc.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { realtime: { transport: WebSocket } });
 const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7','base64');
 
 function isValidEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e||'').trim());}
