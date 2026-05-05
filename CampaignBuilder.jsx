@@ -5,10 +5,12 @@ import { api } from './api.js';
 const VARS = ['{{first_name}}','{{last_name}}','{{company}}','{{city}}','{{phone}}','{{business_url}}'];
 const TIMEZONES = ['America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Paris','Africa/Lagos','Africa/Nairobi','Asia/Dubai','Asia/Kolkata','Asia/Singapore'];
 
-function StepCard({ step, index, total, onChange, onRemove, onMoveUp, onMoveDown }) {
+function StepCard({ step, index, total, onChange, onRemove, onMoveUp, onMoveDown, campaignId }) {
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState(null);
   const [testContact, setTestContact] = useState({ first_name:'John', last_name:'Smith', company:'Acme Plumbing', city:'Lagos', phone:'080-1234-5678', business_url:'acmeplumbing.com', timezone:'Africa/Lagos' });
+  const [realContacts, setRealContacts] = useState([]);
+  const [selectedContact, setSelectedContact] = useState('');
   const [activeField, setActiveField] = useState('body');
   const [missing, setMissing] = useState([]);
   const [showPerStepTime, setShowPerStepTime] = useState(!!(step.send_hour_start || step.send_hour_end));
@@ -22,9 +24,39 @@ function StepCard({ step, index, total, onChange, onRemove, onMoveUp, onMoveDown
     setTimeout(() => { el.focus(); el.setSelectionRange(s + v.length, s + v.length); }, 0);
   };
 
-  const loadPreview = async () => {
-    const res = await api.preview(step.subject, step.body, testContact).catch(() => null);
+  const loadPreview = async (contactOverride) => {
+    const contactToUse = contactOverride || testContact;
+    const res = await api.preview(step.subject, step.body, contactToUse).catch(() => null);
     if (res) { setPreviewData(res); setMissing(res.missingVars || []); }
+  };
+
+  const loadRealContacts = async () => {
+    if (!campaignId) return;
+    try {
+      const res = await api.getContacts(campaignId, { page: 1 });
+      setRealContacts(res.contacts || []);
+    } catch(e) {}
+  };
+
+  const handleRealContactSelect = (e) => {
+    const contactId = e.target.value;
+    setSelectedContact(contactId);
+    if (!contactId) return;
+    const contact = realContacts.find(c => c.id === contactId);
+    if (contact) {
+      const merged = {
+        first_name: contact.first_name || '',
+        last_name: contact.last_name || '',
+        company: contact.company || '',
+        city: contact.city || '',
+        phone: contact.phone || '',
+        business_url: contact.business_url || '',
+        timezone: contact.timezone || '',
+        ...(contact.custom_fields || {})
+      };
+      setTestContact(merged);
+      loadPreview(merged);
+    }
   };
 
   return (
@@ -110,7 +142,18 @@ function StepCard({ step, index, total, onChange, onRemove, onMoveUp, onMoveDown
       {showPreview && (
         <div className="preview-pane" style={{ marginTop:14 }}>
           <div className="preview-header">
-            <div style={{ fontWeight:600, fontSize:12, color:'var(--text-secondary)', marginBottom:10 }}>Preview with test contact data</div>
+            <div style={{ fontWeight:600, fontSize:12, color:'var(--text-secondary)', marginBottom:8 }}>Preview with contact data</div>
+            {realContacts.length > 0 && (
+              <div style={{ marginBottom:10 }}>
+                <label style={{ fontSize:11, color:'var(--text-muted)', display:'block', marginBottom:4 }}>Pick a real contact from this campaign:</label>
+                <select className="input" style={{ fontSize:12 }} value={selectedContact} onChange={handleRealContactSelect}>
+                  <option value="">— Use test data below —</option>
+                  {realContacts.map(c => (
+                    <option key={c.id} value={c.id}>{c.email} {c.first_name ? `(${c.first_name} ${c.last_name||''})` : ''}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:10 }}>
               {Object.entries(testContact).map(([k, v]) => (
                 <div key={k}>
@@ -319,7 +362,7 @@ export default function CampaignBuilder() {
           {steps.map((step, i) => (
             <div key={i}>
               <StepCard
-                step={step} index={i} total={steps.length}
+                step={step} index={i} total={steps.length} campaignId={id}
                 onChange={updated => setSteps(s => s.map((x, idx) => idx === i ? updated : x))}
                 onRemove={idx => setSteps(s => s.filter((_, j) => j !== idx))}
                 onMoveUp={idx => setSteps(s => { const a = [...s]; [a[idx-1], a[idx]] = [a[idx], a[idx-1]]; return a; })}
